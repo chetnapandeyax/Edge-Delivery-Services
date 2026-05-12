@@ -10,23 +10,27 @@ import {
   loadSection,
   loadSections,
   loadCSS,
-} from './aem.js';
+} from "./aem.js";
 
 /**
  * Builds hero block and prepends to main in a new section.
  * @param {Element} main The container element
  */
 function buildHeroBlock(main) {
-  const h1 = main.querySelector('h1');
-  const picture = main.querySelector('picture');
+  const h1 = main.querySelector("h1");
+  const picture = main.querySelector("picture");
   // eslint-disable-next-line no-bitwise
-  if (h1 && picture && (h1.compareDocumentPosition(picture) & Node.DOCUMENT_POSITION_PRECEDING)) {
+  if (
+    h1 &&
+    picture &&
+    h1.compareDocumentPosition(picture) & Node.DOCUMENT_POSITION_PRECEDING
+  ) {
     // Check if h1 or picture is already inside a hero block
-    if (h1.closest('.hero') || picture.closest('.hero')) {
+    if (h1.closest(".hero") || picture.closest(".hero")) {
       return; // Don't create a duplicate hero block
     }
-    const section = document.createElement('div');
-    section.append(buildBlock('hero', { elems: [picture, h1] }));
+    const section = document.createElement("div");
+    section.append(buildBlock("hero", { elems: [picture, h1] }));
     main.prepend(section);
   }
 }
@@ -37,7 +41,8 @@ function buildHeroBlock(main) {
 async function loadFonts() {
   await loadCSS(`${window.hlx.codeBasePath}/styles/fonts.css`);
   try {
-    if (!window.location.hostname.includes('localhost')) sessionStorage.setItem('fonts-loaded', 'true');
+    if (!window.location.hostname.includes("localhost"))
+      sessionStorage.setItem("fonts-loaded", "true");
   } catch (e) {
     // do nothing
   }
@@ -50,10 +55,12 @@ async function loadFonts() {
 function buildAutoBlocks(main) {
   try {
     // auto load `*/fragments/*` references
-    const fragments = [...main.querySelectorAll('a[href*="/fragments/"]')].filter((f) => !f.closest('.fragment'));
+    const fragments = [
+      ...main.querySelectorAll('a[href*="/fragments/"]'),
+    ].filter((f) => !f.closest(".fragment"));
     if (fragments.length > 0) {
       // eslint-disable-next-line import/no-cycle
-      import('../blocks/fragment/fragment.js').then(({ loadFragment }) => {
+      import("../blocks/fragment/fragment.js").then(({ loadFragment }) => {
         fragments.forEach(async (fragment) => {
           try {
             const { pathname } = new URL(fragment.href);
@@ -61,7 +68,7 @@ function buildAutoBlocks(main) {
             fragment.parentElement.replaceWith(...frag.children);
           } catch (error) {
             // eslint-disable-next-line no-console
-            console.error('Fragment loading failed', error);
+            console.error("Fragment loading failed", error);
           }
         });
       });
@@ -70,7 +77,7 @@ function buildAutoBlocks(main) {
     buildHeroBlock(main);
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Auto Blocking failed', error);
+    console.error("Auto Blocking failed", error);
   }
 }
 
@@ -79,35 +86,38 @@ function buildAutoBlocks(main) {
  * @param {HTMLElement} main The main container element
  */
 function decorateButtons(main) {
-  main.querySelectorAll('p a[href]').forEach((a) => {
+  main.querySelectorAll("p a[href]").forEach((a) => {
     a.title = a.title || a.textContent;
-    const p = a.closest('p');
+    const p = a.closest("p");
     const text = a.textContent.trim();
 
     // quick structural checks
-    if (a.querySelector('img') || p.textContent.trim() !== text) return;
+    if (a.querySelector("img") || p.textContent.trim() !== text) return;
 
     // skip URL display links
     try {
       if (new URL(a.href).href === new URL(text, window.location).href) return;
-    } catch { /* continue */ }
+    } catch {
+      /* continue */
+    }
 
     // require authored formatting for buttonization
-    const strong = a.closest('strong');
-    const em = a.closest('em');
+    const strong = a.closest("strong");
+    const em = a.closest("em");
     if (!strong && !em) return;
 
-    p.className = 'button-wrapper';
-    a.className = 'button';
-    if (strong && em) { // high-impact call-to-action
-      a.classList.add('accent');
+    p.className = "button-wrapper";
+    a.className = "button";
+    if (strong && em) {
+      // high-impact call-to-action
+      a.classList.add("accent");
       const outer = strong.contains(em) ? strong : em;
       outer.replaceWith(a);
     } else if (strong) {
-      a.classList.add('primary');
+      a.classList.add("primary");
       strong.replaceWith(a);
     } else {
-      a.classList.add('secondary');
+      a.classList.add("secondary");
       em.replaceWith(a);
     }
   });
@@ -131,18 +141,25 @@ export function decorateMain(main) {
  * @param {Element} doc The container element
  */
 async function loadEager(doc) {
-  document.documentElement.lang = 'en';
+  document.documentElement.lang = "en";
   decorateTemplateAndTheme();
-  const main = doc.querySelector('main');
+  const main = doc.querySelector("main");
+  const columns = doc.querySelector(".columns-wrapper");
   if (main) {
     decorateMain(main);
-    document.body.classList.add('appear');
-    await loadSection(main.querySelector('.section'), waitForFirstImage);
+    document.body.classList.add("appear");
+    await loadSection(main.querySelector(".section"), waitForFirstImage);
+  }
+
+  if (columns) {
+    decorateMain(columns);
+    document.body.classList.add("appear");
+    await loadSection(columns.querySelector(".section"), waitForFirstImage);
   }
 
   try {
     /* if desktop (proxy for fast connection) or fonts already loaded, load fonts.css */
-    if (window.innerWidth >= 900 || sessionStorage.getItem('fonts-loaded')) {
+    if (window.innerWidth >= 900 || sessionStorage.getItem("fonts-loaded")) {
       loadFonts();
     }
   } catch (e) {
@@ -155,16 +172,16 @@ async function loadEager(doc) {
  * @param {Element} doc The container element
  */
 async function loadLazy(doc) {
-  loadHeader(doc.querySelector('header'));
+  loadHeader(doc.querySelector("header"));
 
-  const main = doc.querySelector('main');
+  const main = doc.querySelector("main");
   await loadSections(main);
 
   const { hash } = window.location;
   const element = hash ? doc.getElementById(hash.substring(1)) : false;
   if (hash && element) element.scrollIntoView();
 
-  loadFooter(doc.querySelector('footer'));
+  loadFooter(doc.querySelector("footer"));
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
   loadFonts();
@@ -176,7 +193,7 @@ async function loadLazy(doc) {
  */
 function loadDelayed() {
   // eslint-disable-next-line import/no-cycle
-  window.setTimeout(() => import('./delayed.js'), 3000);
+  window.setTimeout(() => import("./delayed.js"), 3000);
   // load anything that can be postponed to the latest here
 }
 
