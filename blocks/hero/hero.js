@@ -3,7 +3,10 @@ export default function decorate(block) {
   if (heroContent) {
     heroContent.classList.add("hero-content");
   }
-
+  const sibling = heroContent.nextElementSibling;
+  if (sibling) {
+    sibling.classList.add("hero-text");
+  }
   const cols = [...block.firstElementChild.children];
   cols.forEach((col) => {
     col.classList.add("hero-col");
