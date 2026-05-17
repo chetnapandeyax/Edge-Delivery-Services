@@ -52,6 +52,7 @@ async function loadFonts() {
  * Builds all synthetic blocks in a container element.
  * @param {Element} main The container element
  */
+
 function buildAutoBlocks(main) {
   try {
     // auto load `*/fragments/*` references
