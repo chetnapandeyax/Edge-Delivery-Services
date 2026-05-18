@@ -1,15 +1,18 @@
 import {
   buildBlock,
+  loadBlock,
   loadHeader,
   loadFooter,
   decorateIcons,
   decorateSections,
   decorateBlocks,
+  decorateBlock,
   decorateTemplateAndTheme,
   waitForFirstImage,
   loadSection,
   loadSections,
   loadCSS,
+  getMetadata,
 } from "./aem.js";
 
 /**
@@ -47,7 +50,35 @@ async function loadFonts() {
     // do nothing
   }
 }
+async function buildBreadcrumb(main) {
+  if (window.location.pathname === "/") return;
+  const breadcrumbs = getMetadata("breadcrumbs");
+  if (!breadcrumbs || breadcrumbs.toLowerCase() !== "true") return;
 
+  const paths = window.location.pathname.split("/").filter(Boolean);
+  const cells = [["Home", "/"]];
+  let currentPath = "";
+  paths.forEach((path) => {
+    currentPath += `/${path}`;
+    const label =
+      path.charAt(0).toUpperCase() + path.slice(1).replace(/-/g, " ");
+    cells.push([label, currentPath]);
+  });
+
+  const block = buildBlock("breadcrumb", cells);
+  const section = document.createElement("div");
+  section.classList.add("section", "breadcrumb-container");
+  section.dataset.sectionStatus = "loaded";
+  section.appendChild(block);
+
+  const firstSection = main.querySelector(".section");
+  if (firstSection) firstSection.after(section);
+  else main.prepend(section);
+
+  // ⚡ Decorate and load the block properly
+  decorateBlock(block);
+  await loadBlock(block);
+}
 /**
  * Builds all synthetic blocks in a container element.
  * @param {Element} main The container element
@@ -76,6 +107,7 @@ function buildAutoBlocks(main) {
     }
 
     buildHeroBlock(main);
+    // buildBreadcrumb(main);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Auto Blocking failed", error);
@@ -193,6 +225,11 @@ function loadDelayed() {
 async function loadPage() {
   await loadEager(document);
   await loadLazy(document);
+
+  // ⚡ Build breadcrumb AFTER all decoration is done
+  const main = document.querySelector("main");
+  await buildBreadcrumb(main);
+
   loadDelayed();
 }
 
