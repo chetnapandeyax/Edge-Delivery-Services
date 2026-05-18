@@ -156,6 +156,12 @@ function decorateButtons(main) {
   });
 }
 
+function decorateSectionIds(main) {
+  main.querySelectorAll(".section[data-id]").forEach((section) => {
+    section.setAttribute("id", section.dataset.id);
+  });
+}
+
 /**
  * Decorates the main element.
  * @param {Element} main The main element
@@ -167,6 +173,7 @@ export function decorateMain(main) {
   decorateSections(main);
   decorateBlocks(main);
   decorateButtons(main);
+  decorateSectionIds(main);
 }
 
 /**

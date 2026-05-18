@@ -55,3 +55,15 @@
 .tabs .tabs-panel[aria-hidden='true'] {
   display: none;
 }
+
+.tab-custom button.tabs-tab[aria-selected='false']{
+background-color: #124085 !important;
+  
+    color: white;
+}
+
+.tab-custom button.tabs-tab{
+  border-top-right-radius: 8px !important;
+    border-top-left-radius: 8px !important;
+    font-size: 16px;
+}
