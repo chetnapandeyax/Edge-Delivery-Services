@@ -192,6 +192,11 @@ async function loadEager(doc) {
     await loadSection(main.querySelector(".section"), waitForFirstImage);
   }
 
+  const carouselContainer = doc.querySelector(".carousel-container");
+  if (carouselContainer) {
+    await loadSection(carouselContainer);
+  }
+
   try {
     if (window.innerWidth >= 900 || sessionStorage.getItem("fonts-loaded")) {
       loadFonts();
@@ -233,7 +238,7 @@ async function loadPage() {
   await loadEager(document);
   await loadLazy(document);
 
-  // ⚡ Build breadcrumb AFTER all decoration is done
+  // Build breadcrumb AFTER all decoration is done
   const main = document.querySelector("main");
   await buildBreadcrumb(main);
 
