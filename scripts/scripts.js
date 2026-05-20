@@ -75,7 +75,6 @@ async function buildBreadcrumb(main) {
   if (firstSection) firstSection.after(section);
   else main.prepend(section);
 
-  // ⚡ Decorate and load the block properly
   decorateBlock(block);
   await loadBlock(block);
 }
