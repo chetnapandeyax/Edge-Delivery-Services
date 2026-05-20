@@ -37,7 +37,7 @@
 
 @font-face {
   font-family: 'Roboto';
-  src: url('../fonts/Roboto-VariableFont_wdth,wght.ttf') format('truetype');
+ src: url('../fonts/Roboto-VariableFont_wdth.wght.ttf') format('truetype');
   font-weight: 100 900;   /* covers all weights including 300 */
   font-style: normal;
   font-display: swap;
