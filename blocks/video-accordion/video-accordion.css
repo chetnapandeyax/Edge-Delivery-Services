@@ -197,7 +197,7 @@
 
   .va-chevron svg { width: 20px; height: 20px; }
 
-  .video-accordion-container .default-content-wrapper > p {
+  .va-hero-mobile > p {
     font-family: 'Roboto', sans-serif;
     font-size: 2.5rem;
     font-weight: 300;
@@ -208,7 +208,7 @@
 }
 
 @media (min-width: 1026px) {
-  .video-accordion-container .default-content-wrapper { display: none; }
+  .va-hero-mobile { display: none; }
 }
 
 @media (max-width: 1080px) {

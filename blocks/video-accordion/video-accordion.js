@@ -1,96 +1,97 @@
-// ── Helpers ───────────────────────────────────────────────
-const ytId = (url) =>
-  url?.match(
+function getYoutubeId(url) {
+  const match = url?.match(
     /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-  )?.[1] || null;
+  );
+  return match ? match[1] : null;
+}
 
-const el = (tag, cls) =>
-  Object.assign(document.createElement(tag), cls ? { className: cls } : {});
+function createElement(tag, className) {
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  return element;
+}
 
 function parseRow(row) {
   const cols = row.children;
   const title = cols[1]?.textContent.trim() || "";
-  const clone = cols[2]?.cloneNode(true);
-  let id = null;
+  console.log("Parsing row:", title);
 
-  for (const a of [...(clone?.querySelectorAll("a") || [])]) {
-    id = ytId(a.href) || ytId(a.textContent);
-    if (id) {
-      const p = a.parentElement;
-      (p && p !== clone && p.textContent.trim() === a.textContent.trim()
-        ? p
-        : a
-      ).remove();
+  const descriptionCell = cols[2]?.cloneNode(true);
+  let videoId = null;
+
+  const links = [...(descriptionCell?.querySelectorAll("a") || [])];
+  for (const link of links) {
+    videoId = getYoutubeId(link.href) || getYoutubeId(link.textContent);
+    if (videoId) {
+      const parentParagraph = link.parentElement;
+      const parentIsOnlyLink =
+        parentParagraph !== descriptionCell &&
+        parentParagraph?.textContent.trim() === link.textContent.trim();
+      (parentIsOnlyLink ? parentParagraph : link).remove();
       break;
     }
   }
-  if (!id) id = ytId(cols[3]?.querySelector("a")?.href || cols[3]?.textContent);
-  if (!id)
-    for (const c of cols) {
-      id = ytId(c?.textContent);
-      if (id) break;
-    }
 
+  if (!videoId) {
+    const col3Url = cols[3]?.querySelector("a")?.href || cols[3]?.textContent;
+    videoId = getYoutubeId(col3Url);
+  }
+
+  if (!videoId) {
+    for (const col of cols) {
+      videoId = getYoutubeId(col?.textContent);
+      if (videoId) break;
+    }
+  }
+
+  const thumbnailImage = cols[0]?.querySelector("img");
   const thumbSrc =
-    cols[0]?.querySelector("img")?.src ||
-    (id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : "");
-  return { title, description: clone?.innerHTML || "", id, thumbSrc };
+    thumbnailImage?.src ||
+    (videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : "");
+
+  return {
+    title,
+    description: descriptionCell?.innerHTML || "",
+    videoId,
+    thumbSrc,
+  };
 }
 
-function showPoster(id, title, container, thumbSrc) {
+function showVideoPoster(videoId, title, container, thumbSrc) {
   container.innerHTML = "";
-  const poster = el("div", "va-video-poster");
-  const img = Object.assign(el("img"), { alt: title });
 
-  img.src = thumbSrc || `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+  const poster = createElement("div", "va-video-poster");
+
+  const img = createElement("img");
+  img.alt = title;
+  img.src = thumbSrc || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
   if (thumbSrc) {
     img.onerror = () => {
       img.onerror = () => {
         img.onerror = null;
-        img.src = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+        img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
       };
-      img.src = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+      img.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
     };
   }
 
-  const play = el("div", "va-big-play");
-  play.innerHTML = `<svg viewBox="0 0 40 40" width="80" height="80">
-  <circle
-    cx="20"
-    cy="20"
-    r="19"
-    fill="rgba(0,0,0,0.35)"
-  />
+  const playButton = createElement("div", "va-big-play");
+  playButton.innerHTML = `<svg viewBox="0 0 40 40" width="80" height="80">
+    <circle cx="20" cy="20" r="19" fill="rgba(0,0,0,0.35)"/>
+    <circle cx="20" cy="20" r="14" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <polygon points="15,12 30,20 15,28" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+  </svg>`;
 
-  <circle
-    cx="20"
-    cy="20"
-    r="14"
-    fill="none"
-    stroke="#ffffff"
-    stroke-width="2"
-  />
-
-<polygon
-  points="15,12 30,20 15,28"
-  fill="none"
-  style="fill:none"
-  stroke="#ffffff"
-  stroke-width="2"
-  stroke-linejoin="round"
-/>
-</svg>`;
-
-  poster.append(img, play);
+  poster.append(img, playButton);
   container.appendChild(poster);
 
   poster.addEventListener("click", (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // prevent accordion toggle from firing
     container.innerHTML = "";
-    const iframe = Object.assign(el("iframe"), {
-      src: `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`,
-      title,
-    });
+
+    const iframe = createElement("iframe");
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+    iframe.title = title;
     iframe.setAttribute("allowfullscreen", "");
     iframe.setAttribute(
       "allow",
@@ -104,95 +105,89 @@ export default function decorate(block) {
   const rows = [...block.querySelectorAll(":scope > div")];
   if (!rows.length) return;
 
-  const heroImgEl = rows[0].children[1]?.querySelector("img");
-  const heroHTML = rows[0].children[0]?.innerHTML || "";
-  const items = rows.slice(1).map(parseRow);
+  const heroImage = rows[0].children[1]?.querySelector("img");
+  const heroTitleHTML = rows[0].children[0]?.innerHTML || "";
+  const accordionItems = rows.slice(1).map(parseRow);
 
   block.innerHTML = "";
   block.classList.add("va-block");
 
-  const left = el("div", "va-left");
-  const list = el("ul", "va-accordion");
-  const right = el("div", "va-right");
-  const mediaCon = el("div", "va-media-container");
+  const leftPanel = createElement("div", "va-left");
+  const accordionList = createElement("ul", "va-accordion");
+  const rightPanel = createElement("div", "va-right");
+  const mediaContainer = createElement("div", "va-media-container");
+  const heroTitleMobile = createElement("div", "va-hero-mobile");
+  heroTitleMobile.innerHTML = `${heroTitleHTML}</p>`;
+  leftPanel.appendChild(accordionList);
+  rightPanel.appendChild(mediaContainer);
 
-  left.appendChild(list);
-  right.appendChild(mediaCon);
+  function showHeroImage() {
+    mediaContainer.innerHTML = "";
+    if (heroImage) mediaContainer.appendChild(heroImage.cloneNode(true));
+  }
 
-  const showHero = () => {
-    mediaCon.innerHTML = "";
-    if (heroImgEl) mediaCon.appendChild(heroImgEl.cloneNode(true));
-  };
+  const heroItem = createElement("li", "va-item va-hero va-active");
+  heroItem.innerHTML = `
+    <div class="va-item-header">
+      <span class="va-item-title">${heroTitleHTML}</span>
+      <span class="va-chevron"></span>
+    </div>
+    <div class="va-item-body"></div>`;
+  accordionList.appendChild(heroItem);
+  showHeroImage();
 
-  const heroItem = el("li", "va-item va-hero va-active");
-  heroItem.innerHTML = `<div class="va-item-header"><span class="va-item-title">${heroHTML}</span><span class="va-chevron"></span></div><div class="va-item-body"></div>`;
-  list.appendChild(heroItem);
-  showHero();
-
-  items.forEach((item) => {
-    const li = el("li", "va-item va-video");
-    li.innerHTML = `
-    
+  accordionItems.forEach((item) => {
+    const listItem = createElement("li", "va-item va-video");
+    listItem.innerHTML = `
       <div class="va-thumb">
         ${item.thumbSrc ? `<img src="${item.thumbSrc}" alt="${item.title}">` : ""}
-        <span class="va-play-icon"><svg viewBox="0 0 40 40" width="40" height="40">
-  <!-- Dark transparent background -->
-  <circle
-    cx="20"
-    cy="20"
-    r="19"
-    fill="rgba(0,0,0,0.35)"
-  />
-
-  <circle
-    cx="20"
-    cy="20"
-    r="14"
-    fill="none"
-    stroke="#ffffff"
-    stroke-width="2"
-  />
-
-<polygon
-  points="15,12 30,20 15,28"
-  fill="none"
-  style="fill:none"
-  stroke="#ffffff"
-  stroke-width="2"
-  stroke-linejoin="round"
-/>
-</svg></span>
-      <div class="va-overlay"></div>
-        </div>
+        <span class="va-play-icon">
+          <svg viewBox="0 0 40 40" width="40" height="40">
+            <circle cx="20" cy="20" r="19" fill="rgba(0,0,0,0.35)"/>
+            <circle cx="20" cy="20" r="14" fill="none" stroke="#ffffff" stroke-width="2"/>
+            <polygon points="15,12 30,20 15,28" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <div class="va-overlay"></div>
+      </div>
       <div class="va-item-header">
         <span class="va-item-title">${item.title}</span>
-        <span class="va-chevron"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" data-icon-name="chevron-down" class="rwp-icon icon-color-Gray  " viewBox="0 0 32 32">
-<path d="M30.48 7.24l-14.48 14.48-14.48-14.48-1.52 1.52 16 16 16-16z"></path>
-</svg></span>
+        <span class="va-chevron">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+            <path d="M30.48 7.24l-14.48 14.48-14.48-14.48-1.52 1.52 16 16 16-16z"/>
+          </svg>
+        </span>
       </div>
       <div class="va-item-body">${item.description}</div>`;
-    list.appendChild(li);
+    accordionList.appendChild(listItem);
 
-    li.addEventListener("click", () => {
-      const opening = !li.classList.contains("va-active");
-      list
+    listItem.addEventListener("click", () => {
+      const isAlreadyOpen = listItem.classList.contains("va-active");
+
+      accordionList
         .querySelectorAll(".va-item.va-video")
         .forEach((v) => v.classList.remove("va-active"));
 
-      if (opening) {
-        li.classList.add("va-active");
+      if (!isAlreadyOpen) {
+        listItem.classList.add("va-active");
         heroItem.classList.remove("va-active");
-        item.id
-          ? showPoster(item.id, item.title, mediaCon, item.thumbSrc)
-          : (() => {
-              mediaCon.innerHTML = `<img src="${item.thumbSrc}" alt="${item.title}">`;
-            })();
+
+        if (item.videoId) {
+          showVideoPoster(
+            item.videoId,
+            item.title,
+            mediaContainer,
+            item.thumbSrc,
+          );
+        } else {
+          mediaContainer.innerHTML = `<img src="${item.thumbSrc}" alt="${item.title}">`;
+        }
       } else {
         heroItem.classList.add("va-active");
-        showHero();
+        showHeroImage();
       }
     });
   });
 
-  block.append(left, right);
+  block.append(leftPanel, rightPanel, heroTitleMobile);
 }
