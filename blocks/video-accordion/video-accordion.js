@@ -13,48 +13,20 @@ function createElement(tag, className) {
 
 function parseRow(row) {
   const cols = row.children;
+
   const title = cols[1]?.textContent.trim() || "";
-  console.log("Parsing row:", title);
 
-  const descriptionCell = cols[2]?.cloneNode(true);
-  let videoId = null;
-
-  const links = [...(descriptionCell?.querySelectorAll("a") || [])];
-  for (const link of links) {
-    videoId = getYoutubeId(link.href) || getYoutubeId(link.textContent);
-    if (videoId) {
-      const parentParagraph = link.parentElement;
-      const parentIsOnlyLink =
-        parentParagraph !== descriptionCell &&
-        parentParagraph?.textContent.trim() === link.textContent.trim();
-      (parentIsOnlyLink ? parentParagraph : link).remove();
-      break;
-    }
-  }
-
-  if (!videoId) {
-    const col3Url = cols[3]?.querySelector("a")?.href || cols[3]?.textContent;
-    videoId = getYoutubeId(col3Url);
-  }
-
-  if (!videoId) {
-    for (const col of cols) {
-      videoId = getYoutubeId(col?.textContent);
-      if (videoId) break;
-    }
-  }
+  const description = cols[2]?.innerHTML || "";
 
   const thumbnailImage = cols[0]?.querySelector("img");
+  const videoLink = cols[0]?.querySelector("a");
+  const videoId = getYoutubeId(videoLink?.href || videoLink?.textContent);
+
   const thumbSrc =
     thumbnailImage?.src ||
     (videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : "");
 
-  return {
-    title,
-    description: descriptionCell?.innerHTML || "",
-    videoId,
-    thumbSrc,
-  };
+  return { title, description, videoId, thumbSrc };
 }
 
 function showVideoPoster(videoId, title, container, thumbSrc) {
@@ -86,9 +58,8 @@ function showVideoPoster(videoId, title, container, thumbSrc) {
   container.appendChild(poster);
 
   poster.addEventListener("click", (e) => {
-    e.stopPropagation(); // prevent accordion toggle from firing
+    e.stopPropagation();
     container.innerHTML = "";
-
     const iframe = createElement("iframe");
     iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
     iframe.title = title;
@@ -105,9 +76,12 @@ export default function decorate(block) {
   const rows = [...block.querySelectorAll(":scope > div")];
   if (!rows.length) return;
 
-  const heroImage = rows[0].children[1]?.querySelector("img");
-  const heroTitleHTML = rows[0].children[0]?.innerHTML || "";
-  const accordionItems = rows.slice(1).map(parseRow);
+  const heroRow = rows[1];
+  const videoRows = rows.slice(2);
+
+  const heroImage = heroRow?.children[0]?.querySelector("img");
+  const heroTitleHTML = heroRow?.children[1]?.innerHTML || "";
+  const accordionItems = videoRows.map(parseRow);
 
   block.innerHTML = "";
   block.classList.add("va-block");
@@ -117,7 +91,8 @@ export default function decorate(block) {
   const rightPanel = createElement("div", "va-right");
   const mediaContainer = createElement("div", "va-media-container");
   const heroTitleMobile = createElement("div", "va-hero-mobile");
-  heroTitleMobile.innerHTML = `${heroTitleHTML}</p>`;
+  heroTitleMobile.innerHTML = heroTitleHTML;
+
   leftPanel.appendChild(accordionList);
   rightPanel.appendChild(mediaContainer);
 
@@ -136,6 +111,7 @@ export default function decorate(block) {
   accordionList.appendChild(heroItem);
   showHeroImage();
 
+  // Video accordion items
   accordionItems.forEach((item) => {
     const listItem = createElement("li", "va-item va-video");
     listItem.innerHTML = `
