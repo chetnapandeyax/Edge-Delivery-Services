@@ -1,4 +1,5 @@
-.*
+.github/*
+.vscode/*
 *.md
 karma.config.js
 LICENSE
